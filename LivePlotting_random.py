@@ -1,11 +1,11 @@
-#XBee
-import digi.xbee
-
 #Graph libraries
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QApplication)
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 import PyQt5
 import pyqtgraph as pg
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 #Normal libraries
 import serial
@@ -19,7 +19,7 @@ from random import randint
 #---------------------------------------------------------------
 
 xi = 2
-maxRange = 100
+maxRange = 60
 packetInterval = 100 #time in milliseconds between updates
 
 class tempPlot(pg.PlotWidget):
@@ -28,15 +28,17 @@ class tempPlot(pg.PlotWidget):
         
         tempGraph.x = list(range(-(xi),0))
         tempGraph.y = [randint(0,0) for _ in range(xi)]
-        tempGraph.avg = sum(tempGraph.y) / len(tempGraph.x)
-        tempGraph.storeAvg = [tempGraph.avg for _ in range(len(tempGraph.x))]
+        tempGraph.storeY = [tempGraph.y[-1] for _ in range(xi)]
+        tempGraph.avg = [0 for _ in range(len(tempGraph.x))]
+        tempGraph.storeAvg = [0 for _ in range(len(tempGraph.x))]
 
         tempGraph.setLabel('left', 'Temperature (°C)')
         tempGraph.setLabel('bottom', 'Second (s)')
         tempGraph.setTitle('Temperature')
 
         tempGraph.tempAvg = tempGraph.plot(tempGraph.x, tempGraph.storeAvg, pen='b')
-        tempGraph.tempLine = tempGraph.plot(tempGraph.x, tempGraph.y, pen='g')
+        tempGraph.tempLine = tempGraph.plot(tempGraph.x, tempGraph.y, pen='k')
+        tempGraph.setBackground('w')
         tempGraph.showGrid(x=True, y=True)
         
         tempGraph.timer = QtCore.QTimer()
@@ -48,13 +50,11 @@ class tempPlot(pg.PlotWidget):
 
         xi = len(tempGraph.x)
 
-        tempGraph.avg = sum(tempGraph.y) / len(tempGraph.x)
-
         if xi < maxRange:
             
             tempGraph.x.append(tempGraph.x[-1] + 1)
             tempGraph.y.append(randint(0,100))
-            tempGraph.storeAvg.append(tempGraph.avg)
+            tempGraph.storeY.append(tempGraph.y[-1])
 
         else:
             
@@ -63,11 +63,19 @@ class tempPlot(pg.PlotWidget):
 
             tempGraph.y = tempGraph.y[1:]
             tempGraph.y.append(randint(0,100))
+            tempGraph.storeY.append(tempGraph.y[-1])
 
-            tempGraph.storeAvg = tempGraph.storeAvg[1:]
-            tempGraph.storeAvg.append(tempGraph.avg)
+        if len(tempGraph.x) > 12:
+            if xi >= maxRange:
+                tempGraph.avg = tempGraph.avg[1:]
+                
+            tempGraph.avg.append(sum(tempGraph.storeY[11:]) / len(tempGraph.storeY[11:]))
+            tempGraph.tempAvg.setData(tempGraph.x, tempGraph.avg)
+                
+        else:
 
-        tempGraph.tempAvg.setData(tempGraph.x, tempGraph.storeAvg)
+            tempGraph.avg.append(1)
+
         tempGraph.tempLine.setData(tempGraph.x, tempGraph.y)
       
         xiRead = QtWidgets.QLineEdit(str(xi))
@@ -79,15 +87,17 @@ class presPlot(pg.PlotWidget):
         
         presGraph.x = list(range(-(xi),0))
         presGraph.y = [randint(0,0) for _ in range(xi)]
-        presGraph.avg = sum(presGraph.y) / len(presGraph.x)
-        presGraph.storeAvg = [presGraph.avg for _ in range(len(presGraph.x))]
+        presGraph.storeY = [presGraph.y[-1] for _ in range(xi)]
+        presGraph.avg = [0 for _ in range(len(presGraph.x))]
+        presGraph.storeAvg = [0 for _ in range(len(presGraph.x))]
 
-        presGraph.setLabel('left', 'Pressure (hPa)')
+        presGraph.setLabel('left', 'Pressure (torr)')
         presGraph.setLabel('bottom', 'Second (s)')
         presGraph.setTitle('Pressure')
 
         presGraph.presAvg = presGraph.plot(presGraph.x, presGraph.storeAvg, pen='b')
-        presGraph.presLine = presGraph.plot(presGraph.x, presGraph.y, pen='g')
+        presGraph.presLine = presGraph.plot(presGraph.x, presGraph.y, pen='k')
+        presGraph.setBackground('w')
         presGraph.showGrid(x=True, y=True)
         
         presGraph.timer = QtCore.QTimer()
@@ -99,13 +109,11 @@ class presPlot(pg.PlotWidget):
 
         xi = len(presGraph.x)
 
-        presGraph.avg = sum(presGraph.y) / len(presGraph.x)
-
         if xi < maxRange:
             
             presGraph.x.append(presGraph.x[-1] + 1)
-            presGraph.y.append(randint(0,100))
-            presGraph.storeAvg.append(presGraph.avg)
+            presGraph.y.append(randint(700,840))
+            presGraph.storeY.append(presGraph.y[-1])
 
         else:
             
@@ -113,12 +121,22 @@ class presPlot(pg.PlotWidget):
             presGraph.x.append(presGraph.x[-1] + 1)
 
             presGraph.y = presGraph.y[1:]
-            presGraph.y.append(randint(0,100))
+            presGraph.y.append(randint(700,840))
+            presGraph.storeY.append(presGraph.y[-1])
 
-            presGraph.storeAvg = presGraph.storeAvg[1:]
-            presGraph.storeAvg.append(presGraph.avg)
+            
 
-        presGraph.presAvg.setData(presGraph.x, presGraph.storeAvg)
+        if len(presGraph.x) > 12:
+            if xi >= maxRange:
+                presGraph.avg = presGraph.avg[1:]
+
+            presGraph.avg.append(sum(presGraph.storeY[11:]) / len(presGraph.storeY[11:]))
+            presGraph.presAvg.setData(presGraph.x, presGraph.avg)
+                
+        else:
+
+            presGraph.avg.append(1)
+
         presGraph.presLine.setData(presGraph.x, presGraph.y)
 
 
@@ -126,15 +144,17 @@ class altiPlot(pg.PlotWidget):
     def __init__(altiGraph):
         pg.PlotWidget.__init__(altiGraph)
         
-        altiGraph.x = list(range(-100,0))
-        altiGraph.y = [randint(0,0) for _ in range(100)]
+        altiGraph.x = list(range(-(xi),0))
+        altiGraph.y = [randint(0,0) for _ in range(xi)]
 
         altiGraph.setLabel('left', 'Altitude (m)')
         altiGraph.setLabel('bottom', 'Second (s)')
         altiGraph.setTitle('Altitude')
 
-        altiGraph.altiLine = altiGraph.plot(altiGraph.x, altiGraph.y, pen='g')
+        altiGraph.altiLine = altiGraph.plot(altiGraph.x, altiGraph.y, pen='k')
+        altiGraph.setBackground('w')
         altiGraph.showGrid(x=True, y=True)
+        altiGraph.setYRange(0, 600, padding=0)
         
         altiGraph.timer = QtCore.QTimer()
         altiGraph.timer.setInterval(packetInterval)
@@ -143,13 +163,13 @@ class altiPlot(pg.PlotWidget):
         
     def update_plot_data(altiGraph):
 
-        altiGraph.x = altiGraph.x[1:]
-        altiGraph.x.append(altiGraph.x[-1] + 1)
+        xi = len(altiGraph.x)
 
-        altiGraph.y = altiGraph.y[1:]
-        altiGraph.y.append(randint(0,100))
+        altiGraph.x.append(altiGraph.x[-1] + 1)
+        altiGraph.y.append(pow((altiGraph.x[-1] / 15), 2))
         
         altiGraph.altiLine.setData(altiGraph.x, altiGraph.y)
+
 
 class Window(QWidget):
 
@@ -158,25 +178,38 @@ class Window(QWidget):
 
         wind.initUI() # call the UI set up
 
+    def manualRelease(wind):
+            print('AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH')
+
     # set up the UI
     def initUI(wind):
+        
         layout = QtWidgets.QGridLayout()
         wind.setLayout(layout)
         wind.layout = QVBoxLayout(wind)
-
+        wind.setGeometry(0,0,1920,1080)
         
         wind.pgtemp = tempPlot()
         wind.pgpres = presPlot()
         wind.pgalti = altiPlot()
 
-        
         layout.addWidget(wind.pgtemp, 0, 0, 2, 2)
         layout.addWidget(wind.pgpres, 0, 2, 2, 2)
         layout.addWidget(wind.pgalti, 2, 0, 2, 2)
 
+        font = 30
+        MRB = QtWidgets.QPushButton('⚠\nEJECT\n⚠', wind)
+        MRB.setToolTip('WARNING: EMERGENCY ONLY')
+        MRB.resize(5*font,5*font)
+        MRB.move(999, 569)
+        MRB.setStyleSheet('background-color : red')
+        MRB.setFont(QFont('Arial', font))
+        MRB.clicked.connect(wind.manualRelease)
+
         wind.show()
         wind.setWindowTitle('LivePlotting_L')
-        pg.setConfigOption('background', 'k')
+        pg.setConfigOption('background', 'w')
+        pg.setConfigOption('antialias',True)
         
 if __name__ == '__main__':
     app = QApplication(sys.argv)
