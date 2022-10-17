@@ -112,7 +112,7 @@ class presPlot(pg.PlotWidget):
         if xi < maxRange:
             
             presGraph.x.append(presGraph.x[-1] + 1)
-            presGraph.y.append(randint(700,840))
+            presGraph.y.append(randint(700,800))
             presGraph.storeY.append(presGraph.y[-1])
 
         else:
@@ -121,7 +121,7 @@ class presPlot(pg.PlotWidget):
             presGraph.x.append(presGraph.x[-1] + 1)
 
             presGraph.y = presGraph.y[1:]
-            presGraph.y.append(randint(700,840))
+            presGraph.y.append(randint(700,800))
             presGraph.storeY.append(presGraph.y[-1])
 
             
@@ -171,15 +171,88 @@ class altiPlot(pg.PlotWidget):
         altiGraph.altiLine.setData(altiGraph.x, altiGraph.y)
 
 
+class plot4(pg.PlotWidget):
+    def __init__(plot4Graph):
+        pg.PlotWidget.__init__(plot4Graph)
+        
+        plot4Graph.x = list(range(-(xi),0))
+        plot4Graph.y = [randint(0,0) for _ in range(xi)]
+        plot4Graph.storeY = [plot4Graph.y[-1] for _ in range(xi)]
+        plot4Graph.avg = [0 for _ in range(len(plot4Graph.x))]
+        plot4Graph.storeAvg = [0 for _ in range(len(plot4Graph.x))]
+
+        plot4Graph.setLabel('left', 'details')
+        plot4Graph.setLabel('bottom', 'Second (s)')
+        plot4Graph.setTitle('plot4')
+
+        plot4Graph.plot4Avg = plot4Graph.plot(plot4Graph.x, plot4Graph.storeAvg, pen='b')
+        plot4Graph.plot4Line = plot4Graph.plot(plot4Graph.x, plot4Graph.y, pen='k')
+        plot4Graph.setBackground('w')
+        plot4Graph.showGrid(x=True, y=True)
+        
+        plot4Graph.timer = QtCore.QTimer()
+        plot4Graph.timer.setInterval(packetInterval)
+        plot4Graph.timer.timeout.connect(plot4Graph.update_plot_data)
+        plot4Graph.timer.start()
+
+    def update_plot_data(plot4Graph):
+
+        xi = len(plot4Graph.x)
+
+        if xi < maxRange:
+            
+            plot4Graph.x.append(plot4Graph.x[-1] + 1)
+            plot4Graph.y.append(randint(0,100))
+            plot4Graph.storeY.append(plot4Graph.y[-1])
+
+        else:
+            
+            plot4Graph.x = plot4Graph.x[1:]
+            plot4Graph.x.append(plot4Graph.x[-1] + 1)
+
+            plot4Graph.y = plot4Graph.y[1:]
+            plot4Graph.y.append(randint(0,100))
+            plot4Graph.storeY.append(plot4Graph.y[-1])
+
+        if len(plot4Graph.x) > 12:
+            if xi >= maxRange:
+                plot4Graph.avg = plot4Graph.avg[1:]
+                
+            plot4Graph.avg.append(sum(plot4Graph.storeY[11:]) / len(plot4Graph.storeY[11:]))
+            plot4Graph.plot4Avg.setData(plot4Graph.x, plot4Graph.avg)
+                
+        else:
+
+            plot4Graph.avg.append(1)
+
+        plot4Graph.plot4Line.setData(plot4Graph.x, plot4Graph.y)
+      
+        xiRead = QtWidgets.QLineEdit(str(xi))
+
+
+class MRB(QtWidgets.QPushButton):
+
+    def manualRelease(MRB):
+        print('AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH')
+    
+    def __init__(MRB):
+
+        QtWidgets.QPushButton.__init__(MRB)
+
+        MRB.setText('⚠\nEJECT\n⚠')
+        MRB.setToolTip('WARNING: EMERGENCY ONLY')
+        MRB.setStyleSheet('background-color : red')
+        MRB.setFont(QFont('Arial', 25))
+        MRB.setGeometry(10,10,175,175)
+        MRB.clicked.connect(MRB.manualRelease)
+
+
 class Window(QWidget):
 
     def __init__(wind):
         super().__init__()
 
         wind.initUI() # call the UI set up
-
-    def manualRelease(wind):
-            print('AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH')
 
     # set up the UI
     def initUI(wind):
@@ -192,19 +265,14 @@ class Window(QWidget):
         wind.pgtemp = tempPlot()
         wind.pgpres = presPlot()
         wind.pgalti = altiPlot()
+        wind.pgplot4 = plot4()
+        wind.MRB = MRB()
 
-        layout.addWidget(wind.pgtemp, 0, 0, 2, 2)
-        layout.addWidget(wind.pgpres, 0, 2, 2, 2)
-        layout.addWidget(wind.pgalti, 2, 0, 2, 2)
-
-        font = 30
-        MRB = QtWidgets.QPushButton('⚠\nEJECT\n⚠', wind)
-        MRB.setToolTip('WARNING: EMERGENCY ONLY')
-        MRB.resize(5*font,5*font)
-        MRB.move(999, 569)
-        MRB.setStyleSheet('background-color : red')
-        MRB.setFont(QFont('Arial', font))
-        MRB.clicked.connect(wind.manualRelease)
+        layout.addWidget(wind.pgtemp, 0, 0, 20, 20)
+        layout.addWidget(wind.pgpres, 20, 0, 20, 20)
+        layout.addWidget(wind.pgalti, 0, 20, 20, 15)
+        layout.addWidget(wind.pgplot4, 40, 0, 20, 20)
+        layout.addWidget(wind.MRB, 20, 20)
 
         wind.show()
         wind.setWindowTitle('LivePlotting_L')
