@@ -32,6 +32,25 @@ network.clear()
 
 
 
+# manual release
+class MRB(QtWidgets.QPushButton): #MRB = manual release button
+
+    def manualRelease(MRB):
+        print('Manually Releasing...')
+    
+    def __init__(MRB):
+
+        QtWidgets.QPushButton.__init__(MRB)
+
+        MRB.setText('⚠\nEJECT\n⚠')
+        MRB.setToolTip('WARNING: EMERGENCY ONLY')
+        MRB.setStyleSheet('background-color : red')
+        MRB.setFont(QFont('Arial', 25))
+        MRB.setGeometry(10,10,175,175)
+        MRB.clicked.connect(MRB.manualRelease)
+
+
+
 # defining graphs
 
 
