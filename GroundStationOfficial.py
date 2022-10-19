@@ -15,8 +15,10 @@ from random import randint
 from digi.xbee.devices import DigiPointDevice, RemoteDigiPointDevice, XBee64BitAddress
 from digi.xbee.models.options import DiscoveryOptions
 from digi.xbee.models.status import NetworkDiscoveryStatus
+import threading 
 
 
+parsed = []
 # setting up local and remote xbee
 houston = DigiPointDevice('COM3', 9600)
 houston.open()
@@ -56,12 +58,6 @@ class MRB(QtWidgets.QPushButton): #MRB = manual release button
 
 
 # defining callbacks
-# data received callback
-def data_received_callback(message):
-    print("From %s >> %s" % (message.remote_device.get_64bit_addr(),
-                             message.data.decode("latin-1")))
-
-
 # device discovered callback
 def device_discovered_callback(xbee):
     print("Device discovered: %s" % xbee)
@@ -72,6 +68,20 @@ def discovery_completed_callback(discovery):
         print("Discovery process completed successfully.")
     else:
         print("An error occurred while discovering devices: %s" % discovery.description)
+
+# data received callback
+def data_received_callback(message):
+    print("From %s >> %s" % (message.remote_device.get_64bit_addr(),
+                             message.data.decode("latin-1")))
+
+    line = message.data.decode("latin-1")
+    parsed = line.split(",")
+    filename = open("flight.csv", 'a')
+    print(parsed)
+    filename.write(str(parsed))
+    filename.close()
+    return parsed
+    
 
 
 
@@ -86,37 +96,35 @@ print('Starting discovery process')
 while network.is_discovery_running():
     sleep(0.5)
 
-houston.add_data_received_callback(data_received_callback)
+
+# defining graphs
+
+def update():
+    houston.add_data_received_callback(data_received_callback)
+
+    temp = parsed[6]
+
+    
+    
 
 
-# preparing for data NOTE: ISSUE
-input("Waiting for data...\n")
-houston.close()
 
 
 
 # handling data once received
-while True:
-    message = houston.read_data()
-    parse = message.split(",")
+    # getting data and parsing
+#while True:
+
     
-    app = QApplication(sys.argv)
-    window = Window()
-
-    # need to parse through data for graphs
-
     # TEAM_ID, MISSION_TIME, PACKET_COUNT, SW_STATE, PL_STATE, ALTITUDE, TEMP, VOLTAGE, 
     # GPS_LATITUDE, GPS_LONGITUDE, GYRO_R, GYRO_P, GYRO_Y
-    filename = open("flight.csv", 'a')
-    filename.write(parse)
-    filename.close()
+    #filename = open("flight.csv", 'a')
+    #filename.write(parsed)
+    #filename.close()
 
     # NOTE: i don't think this is working the way i want. we need threads
+    # THREADS
    
-
-
-   
-# NOTE:     
-# should be issue with arudiono code
-# need to fix the issue 
-
+# preparing for data 
+input("Waiting for data...\n")
+houston.close()
