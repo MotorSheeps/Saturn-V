@@ -1,3 +1,9 @@
+#XBee
+import digi.xbee
+from digi.xbee.devices import DigiPointDevice, RemoteDigiPointDevice, XBee64BitAddress
+from digi.xbee.models.options import DiscoveryOptions
+from digi.xbee.models.status import NetworkDiscoveryStatus
+
 #Graph libraries
 from PyQt5.QtWidgets import (QWidget, QVBoxLayout, QApplication)
 from PyQt5 import QtWidgets, QtCore, QtGui
@@ -10,6 +16,7 @@ from PyQt5.QtCore import *
 #Normal libraries
 import serial
 import time
+from time import sleep
 import sys
 import os
 from random import randint
@@ -17,11 +24,89 @@ from random import randint
 
 xi = 2
 maxRange = 60
-packetInterval = 1000 #time in milliseconds between updates
+packetInterval = 500 #time in milliseconds between updates
+'''
+#-----------------------------------------------------------------------------------------------
+#  XBee SetUp
+#-----------------------------------------------------------------------------------------------
+
+# setting up local and remote xbee
+houston = DigiPointDevice('COM7', 9600)
+houston.open()
+saturn = RemoteDigiPointDevice(houston, XBee64BitAddress.from_hex_string("0013A2004199938C"))
+
+
+
+# network discovery
+network = houston.get_network()
+network.set_discovery_options({DiscoveryOptions.DISCOVER_MYSELF, DiscoveryOptions.APPEND_DD})
+network.set_discovery_timeout(10)
+network.clear()
+
+# defining callbacks
+# data received callback
+def data_received_callback(message):
+    print("From %s >> %s" % (message.remote_device.get_64bit_addr(),
+                             message.data.decode("latin-1")))
+
+
+# device discovered callback
+def device_discovered_callback(xbee):
+    print("Device discovered: %s" % xbee)
+
+# Callback for discovery finished.
+def discovery_completed_callback(discovery):
+    if discovery == NetworkDiscoveryStatus.SUCCESS:
+        print("Discovery process completed successfully.")
+    else:
+        print("An error occurred while discovering devices: %s" % discovery.description)
+
+
+
+# adding the callbacksk
+network.add_device_discovered_callback(device_discovered_callback)
+network.add_discovery_process_finished_callback(discovery_completed_callback)
+
+
+# starting discovery process
+network.start_discovery_process()
+print('Starting discovery process')
+while network.is_discovery_running():
+    sleep(0.5)
+
+houston.add_data_received_callback(data_received_callback)
+
+
+# preparing for data NOTE: ISSUE
+#input("Waiting for data...\n")
+#houston.close()
+
+
+
+# handling data once received
+while True:
+    message = str(houston.read_data())
+    parse = message.split(",")
+    print(message)
+    print(parse)
+    sleep(0.999999)
+    
+    #app = QApplication(sys.argv)
+    #window = Window()
+
+    # need to parse through data for graphs
+
+    # TEAM_ID, MISSION_TIME, PACKET_COUNT, SW_STATE, PL_STATE, ALTITUDE, TEMP, VOLTAGE, 
+    # GPS_LATITUDE, GPS_LONGITUDE, GYRO_R, GYRO_P, GYRO_Y
+packet = open("flight.csv", 'a')
+packet.write(parse)
+packet.close()'''
 
 '''Packet delivers as [1005,MISIION_TIME,PACKET_COUNT,SW_STATE,PL_STATE,ALTITUDE,TEMP,
 VOLTAGE,GYRO_R,GYRO_P,GYRO_Y]'''
 
+
+'''
 t = 1
 p = 1
 A = 500
@@ -29,7 +114,16 @@ T = randint(0,40)
 V = randint(0,1)
 R = randint(0,400)
 P = randint(0,400)
-Y = randint(0,400)
+Y = randint(0,400)'''
+
+t = 0
+p = 0
+A = 0
+T = 0
+V = 0
+R = 0
+P = 0
+Y = 0
         
 packet = [1005,t,p,'ACTIVE','DESCENT',A,T,V,R,P,Y]
 
@@ -47,7 +141,6 @@ class MRB(QtWidgets.QPushButton): #MRB = manual release button
         MRB.setToolTip('WARNING: EMERGENCY ONLY')
         MRB.setStyleSheet('background-color : red')
         MRB.setFont(QFont('Arial', 25))
-        MRB.setGeometry(10,10,175,175)
         MRB.clicked.connect(MRB.manualRelease)
 
 
@@ -77,7 +170,7 @@ class plots(pg.PlotWidget):
             pg.PlotWidget.__init__(tempGraph)
         
             tempGraph.x = list(range(-(xi),0))
-            tempGraph.y = [randint(0,0) for _ in range(xi)]
+            tempGraph.y = [0 for _ in range(xi)]
             tempGraph.storeY = [tempGraph.y[-1] for _ in range(xi)]
             tempGraph.avg = [0 for _ in range(len(tempGraph.x))]
             tempGraph.storeAvg = [0 for _ in range(len(tempGraph.x))]
@@ -85,11 +178,12 @@ class plots(pg.PlotWidget):
             tempGraph.setLabel('left', 'Temperature (°C)')
             tempGraph.setLabel('bottom', 'Second (s)')
             tempGraph.setTitle('Temperature')
-
-            tempGraph.tempAvg = tempGraph.plot(tempGraph.x, tempGraph.storeAvg, pen='b')
-            tempGraph.tempLine = tempGraph.plot(tempGraph.x, tempGraph.y, pen='k')
             tempGraph.setBackground('w')
             tempGraph.showGrid(x=True, y=True)
+            tempGraph.addLegend()
+
+            tempGraph.tempAvg = tempGraph.plot(tempGraph.x, tempGraph.storeAvg, name = 'Avg Temp', pen='b')
+            tempGraph.tempLine = tempGraph.plot(tempGraph.x, tempGraph.y, name = 'Temp', pen='k')
         
             tempGraph.timer = QtCore.QTimer()
             tempGraph.timer.setInterval(packetInterval)
@@ -120,9 +214,11 @@ class plots(pg.PlotWidget):
             if len(tempGraph.x) > 12:
                 if xi >= maxRange:
                     tempGraph.avg = tempGraph.avg[1:]
-                    
-                tempGraph.avg.append(sum(tempGraph.storeY[11:]) / len(tempGraph.storeY[11:]))
-                tempGraph.tempAvg.setData(tempGraph.x, tempGraph.avg)
+                    tempGraph.avg.append(sum(tempGraph.storeY) / len(tempGraph.storeY))
+                    tempGraph.tempAvg.setData(tempGraph.x, tempGraph.avg)
+                else:
+                    tempGraph.avg.append(sum(tempGraph.storeY) / len(tempGraph.storeY))
+                    tempGraph.tempAvg.setData(tempGraph.x[11:], tempGraph.avg[11:])
                     
             else:
 
@@ -143,10 +239,10 @@ class plots(pg.PlotWidget):
             voltGraph.setLabel('left', 'Voltage (V)')
             voltGraph.setLabel('bottom', 'Second (s)')
             voltGraph.setTitle('Voltage')
-
-            voltGraph.voltLine = voltGraph.plot(voltGraph.x, voltGraph.y, pen='k')
             voltGraph.setBackground('w')
             voltGraph.showGrid(x=True, y=True)
+
+            voltGraph.voltLine = voltGraph.plot(voltGraph.x, voltGraph.y, pen='k')
             
             voltGraph.timer = QtCore.QTimer()
             voltGraph.timer.setInterval(packetInterval)
@@ -185,11 +281,11 @@ class plots(pg.PlotWidget):
             altiGraph.setLabel('left', 'Altitude (m)')
             altiGraph.setLabel('bottom', 'Second (s)')
             altiGraph.setTitle('Altitude')
-
-            altiGraph.altiLine = altiGraph.plot(altiGraph.x, altiGraph.y, pen='k')
+            altiGraph.setYRange(0, 600, padding=0)
             altiGraph.setBackground('w')
             altiGraph.showGrid(x=True, y=True)
-            altiGraph.setYRange(0, 600, padding=0)
+
+            altiGraph.altiLine = altiGraph.plot(altiGraph.x, altiGraph.y, pen='k')
             
             altiGraph.timer = QtCore.QTimer()
             altiGraph.timer.setInterval(packetInterval)
@@ -207,57 +303,60 @@ class plots(pg.PlotWidget):
 
 
     class gyroPlot(pg.PlotWidget):
-        def __init__(gyroPlotGraph):
-            pg.PlotWidget.__init__(gyroPlotGraph)
+        def __init__(gyroPlot):
+            pg.PlotWidget.__init__(gyroPlot)
             
-            gyroPlotGraph.x = list(range(-(xi),0))
-            gyroPlotGraph.yR = [randint(0,0) for _ in range(xi)]
-            gyroPlotGraph.yP = [randint(0,0) for _ in range(xi)]
-            gyroPlotGraph.yY = [randint(0,0) for _ in range(xi)]
+            gyroPlot.x = list(range(-(xi),0))
+            gyroPlot.yR = [randint(0,0) for _ in range(xi)]
+            gyroPlot.yP = [randint(0,0) for _ in range(xi)]
+            gyroPlot.yY = [randint(0,0) for _ in range(xi)]
 
-            gyroPlotGraph.setLabel('left', 'details')
-            gyroPlotGraph.setLabel('bottom', 'Second (s)')
-            gyroPlotGraph.setTitle('Gyroscope')
+            gyroPlot.setLabel('left', 'details')
+            gyroPlot.setLabel('bottom', 'Second (s)')
+            gyroPlot.setTitle('Gyroscope')
+            gyroPlot.setBackground('w')
+            gyroPlot.showGrid(x=True, y=True)
+            gyroPlot.addLegend()
 
-            gyroPlotGraph.gyroPlotLineR = gyroPlotGraph.plot(gyroPlotGraph.x, gyroPlotGraph.yR, pen='r')
-            gyroPlotGraph.gyroPlotLineP = gyroPlotGraph.plot(gyroPlotGraph.x, gyroPlotGraph.yP, pen='b')
-            gyroPlotGraph.gyroPlotLineY = gyroPlotGraph.plot(gyroPlotGraph.x, gyroPlotGraph.yY, pen='k')
-            gyroPlotGraph.setBackground('w')
-            gyroPlotGraph.showGrid(x=True, y=True)
+            gyroPlot.gyroLineR = gyroPlot.plot(gyroPlot.x, gyroPlot.yR, name = 'Roll' , pen='r')
+            gyroPlot.gyroLineP = gyroPlot.plot(gyroPlot.x, gyroPlot.yP, name = 'Pitch', pen='b')
+            gyroPlot.gyroLineY = gyroPlot.plot(gyroPlot.x, gyroPlot.yY, name = 'Yaw'  , pen='k')
+            gyroPlot.setBackground('w')
+            gyroPlot.showGrid(x=True, y=True)
             
-            gyroPlotGraph.timer = QtCore.QTimer()
-            gyroPlotGraph.timer.setInterval(packetInterval)
-            gyroPlotGraph.timer.timeout.connect(gyroPlotGraph.update_plot_data)
-            gyroPlotGraph.timer.start()
+            gyroPlot.timer = QtCore.QTimer()
+            gyroPlot.timer.setInterval(packetInterval)
+            gyroPlot.timer.timeout.connect(gyroPlot.update_plot_data)
+            gyroPlot.timer.start()
 
-        def update_plot_data(gyroPlotGraph):
+        def update_plot_data(gyroPlot):
 
-            xi = len(gyroPlotGraph.x)
+            xi = len(gyroPlot.x)
 
-            packetUpdate.updater()
+            #packetUpdate.updater()
 
             if xi < maxRange:
                 
-                gyroPlotGraph.x.append(gyroPlotGraph.x[-1] + 1)
-                gyroPlotGraph.yR.append(packet[8])
-                gyroPlotGraph.yP.append(packet[9])
-                gyroPlotGraph.yY.append(packet[10])
+                gyroPlot.x.append(gyroPlot.x[-1] + 1)
+                gyroPlot.yR.append(packet[8])
+                gyroPlot.yP.append(packet[9])
+                gyroPlot.yY.append(packet[10])
 
             else:
                 
-                gyroPlotGraph.x = gyroPlotGraph.x[1:]
-                gyroPlotGraph.x.append(gyroPlotGraph.x[-1] + 1)
+                gyroPlot.x = gyroPlot.x[1:]
+                gyroPlot.x.append(gyroPlot.x[-1] + 1)
 
-                gyroPlotGraph.yR = gyroPlotGraph.yR[1:]
-                gyroPlotGraph.yP = gyroPlotGraph.yP[1:]
-                gyroPlotGraph.yY = gyroPlotGraph.yY[1:]
-                gyroPlotGraph.yR.append(packet[8])
-                gyroPlotGraph.yP.append(packet[9])
-                gyroPlotGraph.yY.append(packet[10])
+                gyroPlot.yR = gyroPlot.yR[1:]
+                gyroPlot.yP = gyroPlot.yP[1:]
+                gyroPlot.yY = gyroPlot.yY[1:]
+                gyroPlot.yR.append(packet[8])
+                gyroPlot.yP.append(packet[9])
+                gyroPlot.yY.append(packet[10])
 
-            gyroPlotGraph.gyroPlotLineR.setData(gyroPlotGraph.x, gyroPlotGraph.yR)
-            gyroPlotGraph.gyroPlotLineP.setData(gyroPlotGraph.x, gyroPlotGraph.yP)
-            gyroPlotGraph.gyroPlotLineY.setData(gyroPlotGraph.x, gyroPlotGraph.yY)
+            gyroPlot.gyroLineR.setData(gyroPlot.x, gyroPlot.yR)
+            gyroPlot.gyroLineP.setData(gyroPlot.x, gyroPlot.yP)
+            gyroPlot.gyroLineY.setData(gyroPlot.x, gyroPlot.yY)
 
 #---------------------------------------------------------------
 #  Plotting Code Endss Here
@@ -275,22 +374,24 @@ class Window(QWidget):
         wind.setLayout(layout)
         wind.layout = QVBoxLayout(wind)
         wind.setGeometry(0,0,1920,1080)
+
+        #console = PythonConsole()
         
         wind.pgtemp = plots.tempGraph()
         wind.pgvolt = plots.voltGraph()
         wind.pgalti = plots.altiPlot()
-        wind.pggyroPlot = plots.gyroPlot()
+        wind.pggyro = plots.gyroPlot()
         
         wind.MRB = MRB()
 
         layout.addWidget(wind.pgtemp, 0, 0, 20, 20)
         layout.addWidget(wind.pgvolt, 20, 0, 20, 20)
-        layout.addWidget(wind.pgalti, 0, 20, 20, 15)
-        layout.addWidget(wind.pggyroPlot, 40, 0, 20, 20)
-        layout.addWidget(wind.MRB, 20, 20)
+        layout.addWidget(wind.pgalti, 0, 20, 20, 20)
+        layout.addWidget(wind.pggyro, 20, 20, 20, 20)
+        layout.addWidget(wind.MRB, 40, 0, 5, 5)
 
         wind.show()
-        wind.setWindowTitle('LivePlotting_W')
+        wind.setWindowTitle('Houston')
         pg.setConfigOption('background', 'w')
         pg.setConfigOption('antialias',True)
         
