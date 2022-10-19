@@ -21,9 +21,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 
 # some parameters
-xi = 2
-maxRange = 60
-packetInterval = 1000 #time in milliseconds between updates
 counter = 0
 split_data = []
 
@@ -53,6 +50,13 @@ def discovery_completed_callback(discovery):
         print("Discovery process completed successfully.")
     else:
         print("An error occurred while discovering devices: %s" % discovery.description)
+
+
+# need for next callback and graphs
+parsed = []
+err_out_of_bounds = "SIM ERR: attempted to retrieve a packet out of profile's bounds"
+
+
 
 # data received callback
 def data_received_callback(message):
@@ -103,9 +107,6 @@ class MRB(QtWidgets.QPushButton): #MRB = manual release button
 
 
 # defining graphs
-packets = []
-err_out_of_bounds = "SIM ERR: attempted to retrieve a packet out of profile's bounds"
-
 pg.setConfigOption('background', (0, 0, 0))
 pg.setConfigOption('foreground', (197, 198, 199))
 # Interface variables
@@ -188,22 +189,57 @@ def update_voltage(VOLT):
 
 
 
-# gyroscope graph
+# gyroscope graphs
+# roll
 l5 = layout.addLayout(colspan=20, rowspan=2)
 l51 = l5.addLayout(rowspan=1, border=(83, 83, 83))
-p4 = l51.addPlot(title="Gyroscope (°/s)")
-gyroscope_plot = p4.plot(pen=(0, 119, 200))
-gyroscope_data = np.linspace(0, 0, 30)
+p4 = l51.addPlot(title="Gyroscope Roll (°/s)")
+gyroscope_plotR = p4.plot(pen=(0, 119, 200))
+gyroscope_dataR = np.linspace(0, 0, 30)
 ptr4 = 0
 
 
-def update_gyroscope(GYROR,GYROP,GYROY):
-    global gyroscope_plot, gyroscope_data, ptr4
-    gyroscope_data[:-1] = gyroscope_data[1:]
-    gyroscope_data[-1] = float(GYROR,GYROP,GYROY)
+def update_gyroscopeR(GYROR):
+    global gyroscope_plotR, gyroscope_dataR, ptr4
+    gyroscope_dataR[:-1] = gyroscope_dataR[1:]
+    gyroscope_dataR[-1] = float(GYROR)
     ptr4 += 1
-    gyroscope_plot.setData(gyroscope_data)
-    gyroscope_plot.setPos(ptr4, 0)
+    gyroscope_plotR.setData(gyroscope_dataR)
+    gyroscope_plotR.setPos(ptr4, 0)
+
+# pitch
+l6 = layout.addLayout(colspan=20, rowspan=2)
+l61 = l6.addLayout(rowspan=1, border=(83, 83, 83))
+p5 = l61.addPlot(title="Gyroscope Pitch (°/s)")
+gyroscope_plotP = p5.plot(pen=(0, 119, 200))
+gyroscope_dataP = np.linspace(0, 0, 30)
+ptr5 = 0
+
+
+def update_gyroscopeP(GYROP):
+    global gyroscope_plotP, gyroscope_dataP, ptr5
+    gyroscope_dataP[:-1] = gyroscope_dataP[1:]
+    gyroscope_dataP[-1] = float(GYROP)
+    ptr5 += 1
+    gyroscope_plotP.setData(gyroscope_dataP)
+    gyroscope_plotP.setPos(ptr5, 0)
+
+# yaw
+l7 = layout.addLayout(colspan=20, rowspan=2)
+l71 = l7.addLayout(rowspan=1, border=(83, 83, 83))
+p6 = l71.addPlot(title="Gyroscope Yaw (°/s)")
+gyroscope_plotY = p6.plot(pen=(0, 119, 200))
+gyroscope_dataY = np.linspace(0, 0, 30)
+ptr6 = 0
+
+
+def update_gyroscopeY(GYROY):
+    global gyroscope_plotY, gyroscope_dataY, ptr6
+    gyroscope_dataY[:-1] = gyroscope_dataY[1:]
+    gyroscope_dataY[-1] = float(GYROY)
+    ptr6 += 1
+    gyroscope_plotY.setData(gyroscope_dataY)
+    gyroscope_plotY.setPos(ptr6, 0)
 
 
 
@@ -270,7 +306,7 @@ button_layout = layout.addLayout(colspan=21)
 button_spot = button_layout.addLayout(rowspan=1, border=(83, 83, 83))
 button_spot.nextRow()
 proxy = QGraphicsProxyWidget()
-drop_button = QPushButton('Drop Device')
+drop_button = QPushButton('⚠\nEJECT\n⚠')
 drop_button.setStyleSheet(style)
 drop_button.clicked.connect(drop_buttonPushed)
 proxy.setWidget(drop_button)
@@ -300,8 +336,11 @@ def update():
         VOLT = parsed[7]
         update_voltage(VOLT)
         GYROR = parsed[8]
+        update_gyroscopeR(GYROR)
         GYROP = parsed[9]
+        update_gyroscopeP(GYROP)
         GYROY = parsed[10]
+        update_gyroscopeY(GYROY)
 
     except IndexError:
         print('Awaiting Packet')
