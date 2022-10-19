@@ -107,7 +107,7 @@ MISSION_TIME = Mili/1000;
     if (bmp.readAltitude(SEALEVELPRESSURE_HPA)< 5) {
       SW_STATE = "AWAITING_LAUNCH";
       digitalWrite(22, HIGH);  // turn the LED on (HIGH is the voltage level)
-      delay(3000);                      // wait for one and a half seconds
+      delay(3000);                      // wait for three seconds
       digitalWrite(22, LOW);   // turn the LED off by making the voltage LOW
       delay(3000);  
       }
@@ -121,25 +121,35 @@ MISSION_TIME = Mili/1000;
       }
       
     if (bmp.readAltitude(SEALEVELPRESSURE_HPA) >= 400){
-      SW_STATE = "DESCENDING";      }
+      SW_STATE = "DESCENDING";      
       digitalWrite(22, HIGH);
       delay(2000);             // wait for two seconds
       digitalWrite(22, LOW);   // turn the LED off by making the voltage LOW
       delay(2000);
       // Make servo go to 120 degrees 
+      Servo1.write(0);
+      delay(1000)
       Servo1.write(120); 
-      delay(1000);   
-      
+      delay(1000)
+      Servo1.write(0);
+      delay(1000)
+      Servo1.write(120);  
+    }
       
     // 1005,MISSION_TIME,PACKET_COUNT,SW_STATE,PL_STATE,ALTITUDE,TEMP,VOLTAGE,GYRO_R,GYRO_P,GYRO_Y;
     count++;
     Packet = String(1005) + String(",") + String(count) + String(",") + String(SW_STATE) + String(",") + String(PL_STATE) + String(",") + String(bmp.readAltitude(SEALEVELPRESSURE_HPA)) + String(",") + String(bmp.temperature) + String(",") + String(voltage) + String(",") + String(x) + String(",") + String(y) + String(",") + String(z);
 
     
-    Serial1.println(Packet);
+    Serial1.print(Packet);
     }
 
-//SW_STATE = "DESCENDING"; //in case we need it
+SW_STATE = "DESCENDING"; //in case we need it
+
+ while (SW_STATE = "DESCENDING") and ((bmp.readAltitude(SEALEVELPRESSURE_HPA)>= 400)) {
+  // check message from houston
+  
+ }
 
 
 
@@ -164,7 +174,7 @@ MISSION_TIME = Mili/1000;
     Packet = String(1005) + String(",") + String(count) + String(",") + String(SW_STATE) + String(",") + String(PL_STATE) + String(",") + String(bmp.readAltitude(SEALEVELPRESSURE_HPA)) + String(",") + String(bmp.temperature) + String(",") + String(voltage) + String(",") + String(x) + String(",") + String(y) + String(",") + String(z);
   
     
-    Serial1.println(Packet);
+    Serial1.print(Packet);
       }
 
 
