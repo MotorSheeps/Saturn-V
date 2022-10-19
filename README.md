@@ -2,6 +2,6 @@
 Saturn V Two Month Code
 Included:
 Ground Station Code (GroundStationOfficial),
-Live Plots (LivePlotting_random),
+Live Plots Test (LivePlotting_random),
 Flight Code (CanSatCode)
 
