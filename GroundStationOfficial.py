@@ -25,7 +25,7 @@ counter = 0
 split_data = []
 
 # setting up local and remote xbee
-houston = DigiPointDevice('COM3', 9600)
+houston = DigiPointDevice('COM7', 9600)
 houston.open()
 saturn = RemoteDigiPointDevice(houston, XBee64BitAddress.from_hex_string("0013A2004199938C"))
 
@@ -87,28 +87,9 @@ while network.is_discovery_running():
 
 
 
-# manual release
-class MRB(QtWidgets.QPushButton): #MRB = manual release button
-
-    def manualRelease(MRB):
-        print('Manually Releasing...')
-    
-    def __init__(MRB):
-
-        QtWidgets.QPushButton.__init__(MRB)
-
-        MRB.setText('⚠\nEJECT\n⚠')
-        MRB.setToolTip('WARNING: EMERGENCY ONLY')
-        MRB.setStyleSheet('background-color : red')
-        MRB.setFont(QFont('Arial', 25))
-        MRB.setGeometry(10,10,175,175)
-        MRB.clicked.connect(MRB.manualRelease)
-
-
-
 # defining graphs
-pg.setConfigOption('background', (0, 0, 0))
-pg.setConfigOption('foreground', (197, 198, 199))
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
 # Interface variables
 app = QApplication([])
 view = pg.GraphicsView()
@@ -122,21 +103,20 @@ font = QFont()
 font.setPixelSize(90)
 
 # title
-text = "DROP Ground Station"
-layout.addLabel(text, col=1, colspan=21)
+text = "Houston Ground Station"
+#layout.addLabel(text, col=1, colspan=21)
 layout.nextRow()
 
 # vertical Label
-layout.addLabel('Space Hardware Club', angle=-90, rowspan=3)
+#layout.addLabel('Space Hardware Club', angle=-90, rowspan=3)
 layout.nextRow()
 
 
 
 # altitude graph
-l1 = layout.addLayout(colspan=20, rowspan=2)
-l11 = l1.addLayout(rowspan=1, border=(83, 83, 83))
-p1 = l11.addPlot(title="Altitude (m)")
-altitude_plot = p1.plot(pen=(0, 119, 200))
+l1 = layout.addLayout(col = 1, row = 1, colspan=20, rowspan=1)
+p1 = l1.addPlot(title="Altitude (m)")
+altitude_plot = p1.plot(pen='k')
 altitude_data = np.linspace(0, 0, 30)
 ptr1 = 0
 
@@ -152,10 +132,9 @@ def update_altitude(ALT):
 
 
 # temperature graph
-l3 = layout.addLayout(colspan=20, rowspan=2)
-l31 = l3.addLayout(rowspan=1, border=(83, 83, 83))
-p2 = l31.addPlot(title="Temperature (°C)")
-temperature_plot = p2.plot(pen=(0, 119, 200))
+l3 = layout.addLayout(col = 21, row = 1, colspan=20, rowspan=1)
+p2 = l3.addPlot(title="Temperature (°C)")
+temperature_plot = p2.plot(pen='k')
 temperature_data = np.linspace(0, 0, 30)
 ptr2 = 0
 
@@ -171,10 +150,9 @@ def update_temperature(TEMP):
 
 
 # voltage graph
-l4 = layout.addLayout(colspan=20, rowspan=2)
-l41 = l4.addLayout(rowspan=1, border=(83, 83, 83))
-p3 = l41.addPlot(title="Voltage (V)")
-voltage_plot = p3.plot(pen=(0, 119, 200))
+l4 = layout.addLayout(col = 21, row = 2, colspan=20, rowspan=1)
+p3 = l4.addPlot(title="Voltage (V)")
+voltage_plot = p3.plot(pen='k')
 voltage_data = np.linspace(0, 0, 30)
 ptr3 = 0
 
@@ -191,10 +169,9 @@ def update_voltage(VOLT):
 
 # gyroscope graphs
 # roll
-l5 = layout.addLayout(colspan=20, rowspan=2)
-l51 = l5.addLayout(rowspan=1, border=(83, 83, 83))
-p4 = l51.addPlot(title="Gyroscope Roll (°/s)")
-gyroscope_plotR = p4.plot(pen=(0, 119, 200))
+l5 = layout.addLayout(col = 1, row = 2, colspan=20, rowspan=1)
+p4 = l5.addPlot(title="Gyroscope")
+gyroscope_plotR = p4.plot(pen='k')
 gyroscope_dataR = np.linspace(0, 0, 30)
 ptr4 = 0
 
@@ -208,10 +185,7 @@ def update_gyroscopeR(GYROR):
     gyroscope_plotR.setPos(ptr4, 0)
 
 # pitch
-l6 = layout.addLayout(colspan=20, rowspan=2)
-l61 = l6.addLayout(rowspan=1, border=(83, 83, 83))
-p5 = l61.addPlot(title="Gyroscope Pitch (°/s)")
-gyroscope_plotP = p5.plot(pen=(0, 119, 200))
+gyroscope_plotP = p4.plot(pen='r')
 gyroscope_dataP = np.linspace(0, 0, 30)
 ptr5 = 0
 
@@ -225,10 +199,7 @@ def update_gyroscopeP(GYROP):
     gyroscope_plotP.setPos(ptr5, 0)
 
 # yaw
-l7 = layout.addLayout(colspan=20, rowspan=2)
-l71 = l7.addLayout(rowspan=1, border=(83, 83, 83))
-p6 = l71.addPlot(title="Gyroscope Yaw (°/s)")
-gyroscope_plotY = p6.plot(pen=(0, 119, 200))
+gyroscope_plotY = p4.plot(pen=(0, 145, 255))
 gyroscope_dataY = np.linspace(0, 0, 30)
 ptr6 = 0
 
@@ -244,10 +215,7 @@ def update_gyroscopeY(GYROY):
 
 
 # time, battery and free fall graphs
-l2 = layout.addLayout(colspan=20, rowspan=2)
-l21 = l2.addLayout(rowspan=1, border=(83, 83, 83))
-
-
+l21 = layout.addLayout(col = 41, row = 1, colspan=15, rowspan=1)
 
 # time graph
 time_graph = l21.addPlot(title="Time Display")
@@ -265,8 +233,7 @@ def update_time(TIME):
 
 
 # State Display
-l2.nextRow()
-l22 = l2.addLayout(rowspan=1, border=(83, 83, 83))
+l22 = layout.addLayout(col = 41, row = 2, rowspan=1, border=(83, 83, 83))
 state_graph = l22.addPlot(title="State Display: ")
 state_graph.hideAxis('bottom')
 state_graph.hideAxis('left')
@@ -278,7 +245,6 @@ state_graph.addItem(state_text)
 def update_state(STATE):
     global state_text
     state_text.setText(str(STATE))
-
 
 
 layout.nextRow()
@@ -307,7 +273,8 @@ button_spot = button_layout.addLayout(rowspan=1, border=(83, 83, 83))
 button_spot.nextRow()
 proxy = QGraphicsProxyWidget()
 drop_button = QPushButton('⚠\nEJECT\n⚠')
-drop_button.setStyleSheet(style)
+drop_button.setStyleSheet('background-color : red')
+drop_button.setFont(QFont('Arial', 18))
 drop_button.clicked.connect(drop_buttonPushed)
 proxy.setWidget(drop_button)
 button_spot.addItem(proxy)
